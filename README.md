@@ -16,7 +16,8 @@ A screen-only desk companion for an ESP32 and a 128×64 SH1106 OLED. No micropho
 - Speech bubbles retain the face and wrap across two lines. Messages appear for a few seconds rather than replacing the face for up to 20 seconds.
 - A 25-minute focus timer with pause/resume and a persistent visual completion message. It continues in other modes and brings the completion screen back when finished. There is no audible alarm.
 - A repeating breathing animation: 4 seconds in, 2 seconds hold, 6 seconds out.
-- Dim, slowly moving sleep graphics after five minutes without interaction in companion mode, unless a focus timer is running. This is display dimming, not ESP32 deep sleep.
+- Dim, slowly moving sleep graphics after a random 30–120 seconds without interaction in companion mode, unless a focus timer is running. Robo wakes automatically after 30 seconds of sleep. This is display dimming, not ESP32 deep sleep.
+- Companion expressions, glances, blinking, and speech run automatically without Serial or button input. Focus, breathing, mood, and custom-message commands still need to be started explicitly.
 - Nonblocking animation, debounced optional button, bounded serial input, and elapsed-time comparisons that tolerate `millis()` rollover.
 
 ## USB Serial controls

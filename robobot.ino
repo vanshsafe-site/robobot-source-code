@@ -17,7 +17,9 @@
 
 constexpr int BUTTON_PIN = -1;
 constexpr uint32_t FRAME_MS = 33;
-constexpr uint32_t IDLE_SLEEP_MS = 5UL * 60UL * 1000UL;
+constexpr uint32_t MIN_IDLE_SLEEP_MS = 30UL * 1000UL;
+constexpr uint32_t MAX_IDLE_SLEEP_MS = 120UL * 1000UL;
+constexpr uint32_t SLEEP_DURATION_MS = 30UL * 1000UL;
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R2, U8X8_PIN_NONE);
 
 enum Mode { COMPANION, FOCUS, BREATHE, SLEEP };
@@ -48,6 +50,7 @@ Eye eyes[2] = {{40, 28, 25, 26}, {88, 28, 25, 26}};
 Mode mode = COMPANION;
 Mood mood = CALM;
 uint32_t modeAt = 0, lastInput = 0, lastFrame = 0, lastAction = 0;
+uint32_t idleSleepDelay = MIN_IDLE_SLEEP_MS;
 uint32_t actionWait = 2500, blinkAt = 0, blinkWait = 2200;
 uint32_t messageAt = 0, messageDuration = 0, phraseAt = 0, phraseWait = 15000;
 uint32_t focusAt = 0, focusDuration = 25UL * 60000UL;
@@ -79,6 +82,7 @@ void say(const char *text, uint32_t now, uint32_t duration) {
 
 void setMode(Mode next, uint32_t now) {
   mode = next; modeAt = now; lastInput = now;
+  if (next == COMPANION) idleSleepDelay = random((long)MIN_IDLE_SLEEP_MS, (long)MAX_IDLE_SLEEP_MS + 1L);
   gazeX = gazeY = 0;
   messageDuration = 0;
   mood = next == SLEEP ? SLEEPY : CALM;
@@ -204,12 +208,13 @@ void readSerial(uint32_t now) {
 }
 
 void update(uint32_t now) {
+  if (mode == SLEEP && now - modeAt >= SLEEP_DURATION_MS) setMode(COMPANION, now);
   if (focusRunning && now - focusAt >= focusDuration) {
     focusRunning = false; focusDone = true; focusDuration = 0;
     setMode(FOCUS, now); mood = HAPPY;
     Serial.println("Focus complete. Time for a break!");
   }
-  if (mode == COMPANION && !focusRunning && now - lastInput >= IDLE_SLEEP_MS) setMode(SLEEP, now);
+  if (mode == COMPANION && !focusRunning && now - lastInput >= idleSleepDelay) setMode(SLEEP, now);
   if (mode == COMPANION && now - lastAction >= actionWait) {
     lastAction = now; actionWait = random(2500, 6000);
     gazeX = random(-7, 8); gazeY = random(-3, 4);
@@ -322,6 +327,7 @@ void setup() {
   u8g2.setBusClock(400000);
   u8g2.begin(); u8g2.setContrast(brightness);
   randomSeed(esp_random());
+  idleSleepDelay = random((long)MIN_IDLE_SLEEP_MS, (long)MAX_IDLE_SLEEP_MS + 1L);
   lastInput = modeAt = phraseAt = millis();
   say("Hey, I'm Robo!", millis());
   Serial.println("Robo ready. Send help for controls.");
